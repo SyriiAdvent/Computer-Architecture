@@ -24,6 +24,8 @@ class CPU:
             0b10100010 : self.handle_MUL,
             0b01000110: self.handle_POP,
             0b01000101: self.handle_PUSH,
+            0b00010001: self.handle_RET,
+            0b01010000: self.handle_CALL,
         }
 
         self.alu_operations = {
@@ -31,10 +33,10 @@ class CPU:
             'ADD': self.ALU_ADD
          }
 
-    def bitwise_addition(self, num1, num2): # recursive
+    def bitwise_addition(self, num1, num2):
         if num2 <= 0:
             return num1
-        else: #                          sum of bits   common bits and shift
+        else:
             return self.bitwise_addition(num1 ^ num2, (num1 & num2) << 1)
 
     def bitwise_subtraction(self, num1, num2):
@@ -145,6 +147,16 @@ class CPU:
         self.PC = self.ram_read(self.SP)
         self.SP = self.bitwise_addition(self.SP, 1)
 
+    def handle_CALL(self, ops):
+        self.MAR = self.bitwise_addition(self.PC, ops)
+        self.SP = self.bitwise_subtraction(self.SP, 1)
+        if self.SP == self.PC:
+            print(f'Stack overflow!')
+            sys.exit(1)
+        self.ram_write(self.MAR, self.SP)
+        self.MAR = self.ram_read(self.PC + 1)
+        self.PC = self.REG[self.MAR]
+
     
 
     def alu(self, op, reg_a, reg_b):
@@ -157,18 +169,18 @@ class CPU:
 
     def ALU_ADD(self, reg_a, reg_b):
         self.MAR = self.ram_read(reg_b)
-        self.MDR = self.reg[self.MAR]
+        self.MDR = self.REG[self.MAR]
         self.MAR = self.ram_read(reg_a)
-        self.MDR = self.bitwise_addition(self.MDR, self.reg[self.MAR])
-        self.MDR = self.MDR & 0xFF # keep values under maximum (255)
+        self.MDR = self.bitwise_addition(self.MDR, self.REG[self.MAR])
+        self.MDR = self.MDR & 0xFF
         self.REG[self.MAR] = self.MDR
 
     def ALU_MUL(self, reg_a, reg_b):
         self.MAR = self.ram_read(reg_b)
-        self.MDR = self.reg[self.MAR]
+        self.MDR = self.REG[self.MAR]
         self.MAR = self.ram_read(reg_a)
         self.MDR = self.bitwise_multiplication(self.reg[self.MAR], self.MDR)
-        self.MDR = self.MDR & 0xFF # keep values under maximum (255)
+        self.MDR = self.MDR & 0xFF
         self.reg[self.MAR] = self.MDR
 
     def trace(self):
